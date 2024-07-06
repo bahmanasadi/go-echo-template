@@ -47,7 +47,8 @@ tools:
 	@echo "Installing tools..."
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 	go install golang.org/x/tools/cmd/goimports@latest
-	go get github.com/sqlc-dev/pqtype@latest
+	go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+	go get github.com/sqlc-dev/pqtype@latest # check if necessary
 
 # Clean up
 clean:
