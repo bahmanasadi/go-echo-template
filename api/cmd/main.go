@@ -8,14 +8,9 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	sqlcdb "goechotemplate/api/db/model"
-	accounthandler "goechotemplate/api/internal/account/handler"
-	accountrepo "goechotemplate/api/internal/account/repository"
-	accountservice "goechotemplate/api/internal/account/service"
-	authhandler "goechotemplate/api/internal/auth/handler"
-	"goechotemplate/api/internal/auth/model"
-	authrepo "goechotemplate/api/internal/auth/repository"
-	authservice "goechotemplate/api/internal/auth/service"
+	authhandler "goechotemplate/api/internal/auth"
 	cfg "goechotemplate/api/internal/config"
+	accounthandler "goechotemplate/api/internal/person"
 	"goechotemplate/api/pkg/validators"
 	"log"
 )
@@ -36,12 +31,12 @@ func main() {
 	defer db.Close()
 
 	// Initialize repository
-	personRepo := accountrepo.NewPersonRepository(db)
-	authRepo := authrepo.NewAuthRepository(sqlcdb.New(db))
+	personRepo := accounthandler.NewRepository(sqlcdb.New(db))
+	authRepo := authhandler.NewRepository(sqlcdb.New(db))
 
 	// Initialize service
-	authService := authservice.NewAuthService(authRepo)
-	personService := accountservice.NewPersonService(personRepo)
+	authService := authhandler.NewAuthService(authRepo)
+	personService := accounthandler.NewService(personRepo)
 
 	// Initialize Echo
 	e := echo.New()
@@ -56,12 +51,12 @@ func main() {
 	// Setup routes
 	personHandler := accounthandler.NewPersonHandler(authService, personService)
 
-	authHandler := authhandler.NewAuthHandler(authService)
+	authHandler := authhandler.NewHandler(authService)
 	e.POST("/login", authHandler.Login)
 
 	accountGroup := e.Group("/accounts")
 	accountGroup.Use(
-		echojwt.WithConfig(model.DefaultJWTConfig),
+		echojwt.WithConfig(authhandler.DefaultJWTConfig),
 	)
 	accountGroup.GET("/:id", personHandler.GetPerson)
 	accountGroup.POST("/", personHandler.CreatePerson)

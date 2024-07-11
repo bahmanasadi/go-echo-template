@@ -1,25 +1,23 @@
-package handler
+package auth
 
 import (
 	"github.com/labstack/echo/v4"
-	"goechotemplate/api/internal/auth/dto"
-	"goechotemplate/api/internal/auth/service"
 	"net/http"
 )
 
-type AuthHandler struct {
-	authService service.AuthService
+type Handler struct {
+	authService Service
 }
 
-func NewAuthHandler(authService service.AuthService) *AuthHandler {
-	return &AuthHandler{
+func NewHandler(authService Service) Handler {
+	return Handler{
 		authService: authService,
 	}
 }
 
-func (h *AuthHandler) Login(c echo.Context) error {
+func (h *Handler) Login(c echo.Context) error {
 	ctx := c.Request().Context()
-	req := new(dto.LoginRequest)
+	req := new(LoginRequest)
 	if err := c.Bind(req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}

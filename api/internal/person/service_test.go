@@ -1,27 +1,28 @@
-package service
+package person
 
 import (
 	"context"
 	"database/sql"
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/stretchr/testify/suite"
-	"goechotemplate/api/internal/account/model"
-	"goechotemplate/api/internal/account/repository"
+
+	db "goechotemplate/api/db/model"
 	"goechotemplate/api/internal/config"
-	"testing"
-	"time"
 )
 
-type PersonServiceTestSuite struct {
+type ServiceTestSuite struct {
 	suite.Suite
-	service PersonService
+	service Service
 	db      *sql.DB
 }
 
-func (suite *PersonServiceTestSuite) SetupSuite() {
+func (suite *ServiceTestSuite) SetupSuite() {
 	cnf, err := config.Load()
 	if err != nil {
 		suite.T().Fatal(err)
@@ -34,43 +35,43 @@ func (suite *PersonServiceTestSuite) SetupSuite() {
 
 	suite.db = stdlib.OpenDB(*pgxCfg)
 
-	suite.service = NewPersonService(repository.NewPersonRepository(suite.db))
+	suite.service = NewService(NewRepository(db.New(suite.db)))
 }
 
-func (suite *PersonServiceTestSuite) TearDownSuite() {
+func (suite *ServiceTestSuite) TearDownSuite() {
 	suite.db.Close()
 }
 
-func (suite *PersonServiceTestSuite) TestCreatePerson() {
+func (suite *ServiceTestSuite) TestCreatePerson() {
 	ctx := context.Background()
-	newPerson := model.Person{
+	newPerson := Person{
 		ExternalID: uuid.NewString(),
 		Email:      fmt.Sprintf("%s@x.com", uuid.NewString()),
 		Password:   nil,
 		CreatedAt:  time.Now(),
 		UpdatedAt:  time.Now(),
 	}
-	person, err := suite.service.CreatePerson(ctx, &newPerson)
+	person, err := suite.service.Create(ctx, &newPerson)
 	suite.NoError(err)
 	suite.Equal(newPerson.ExternalID, person.ExternalID)
 	suite.Equal(newPerson.Email, person.Email)
 }
 
-func (suite *PersonServiceTestSuite) TestGetPersonExists() {
+func (suite *ServiceTestSuite) TestGetPersonExists() {
 	ctx := context.Background()
-	person, err := suite.service.GetPersonByExternalID(ctx, "random-id")
+	person, err := suite.service.GetByExternalID(ctx, "random-id")
 	suite.NoError(err)
 	suite.Equal("random-id", person.ExternalID)
 	suite.Equal("random@x.com", person.Email)
 }
 
-func (suite *PersonServiceTestSuite) TestGetPersonNotExists() {
+func (suite *ServiceTestSuite) TestGetPersonNotExists() {
 	ctx := context.Background()
-	_, err := suite.service.GetPersonByExternalID(ctx, "123")
+	_, err := suite.service.GetByExternalID(ctx, "123")
 	suite.Error(err)
-	suite.Equal("GetPersonByExternalID: sql: no rows in result set", err.Error())
+	suite.Equal("Repository.GetByExternalID: sql: no rows in result set", err.Error())
 }
 
 func TestPersonServiceTestSuite(t *testing.T) {
-	suite.Run(t, new(PersonServiceTestSuite))
+	suite.Run(t, new(ServiceTestSuite))
 }

@@ -1,34 +1,27 @@
-package repository
+package person
 
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	db "goechotemplate/api/db/model"
-	"goechotemplate/api/internal/account/model"
 	"time"
 )
 
-type PersonRepository interface {
-	GetByExternalID(ctx context.Context, externalID string) (*model.Person, error)
-	Create(ctx context.Context, person *model.Person) (*model.Person, error)
-}
-
-type personRepository struct {
+type Repository struct {
 	queries *db.Queries
 }
 
-func NewPersonRepository(dbtx db.DBTX) PersonRepository {
-	return &personRepository{
-		queries: db.New(dbtx),
-	}
+func NewRepository(queries *db.Queries) Repository {
+	return Repository{queries: queries}
 }
 
-func (r *personRepository) GetByExternalID(ctx context.Context, externalID string) (*model.Person, error) {
+func (r *Repository) GetByExternalID(ctx context.Context, externalID string) (*Person, error) {
 	person, err := r.queries.GetPerson(ctx, externalID)
 	if err != nil {
-		return &model.Person{}, err
+		return &Person{}, fmt.Errorf("Repository.GetByExternalID: %w", err)
 	}
-	return &model.Person{
+	return &Person{
 		ID:         person.ID,
 		ExternalID: person.ExternalID,
 		Email:      person.Email.String,
@@ -38,7 +31,7 @@ func (r *personRepository) GetByExternalID(ctx context.Context, externalID strin
 	}, nil
 }
 
-func (r *personRepository) Create(ctx context.Context, person *model.Person) (*model.Person, error) {
+func (r *Repository) Create(ctx context.Context, person *Person) (*Person, error) {
 	createdPerson, err := r.queries.CreatePerson(ctx, db.CreatePersonParams{
 		ExternalID: person.ExternalID,
 		Email:      sql.NullString{String: person.Email, Valid: true},
@@ -48,10 +41,10 @@ func (r *personRepository) Create(ctx context.Context, person *model.Person) (*m
 	})
 
 	if err != nil {
-		return &model.Person{}, err
+		return &Person{}, fmt.Errorf("Repository.Create: %w", err)
 	}
 
-	return &model.Person{
+	return &Person{
 		ID:         createdPerson.ID,
 		ExternalID: createdPerson.ExternalID,
 		Email:      createdPerson.Email.String,

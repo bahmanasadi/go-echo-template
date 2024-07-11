@@ -1,28 +1,25 @@
-package handler
+package person
 
 import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/labstack/echo/v4"
-	"goechotemplate/api/internal/account/model"
-	"goechotemplate/api/internal/account/service"
-	jwtmodel "goechotemplate/api/internal/auth/model"
-	authservice "goechotemplate/api/internal/auth/service"
+	jwtmodel "goechotemplate/api/internal/auth"
 	"net/http"
 )
 
-type PersonHandler struct {
-	authService   authservice.AuthService
-	personService service.PersonService
+type Handler struct {
+	authService   jwtmodel.Service
+	personService Service
 }
 
-func NewPersonHandler(authService authservice.AuthService, personService service.PersonService) *PersonHandler {
-	return &PersonHandler{
+func NewPersonHandler(authService jwtmodel.Service, personService Service) *Handler {
+	return &Handler{
 		authService:   authService,
 		personService: personService,
 	}
 }
 
-func (h *PersonHandler) GetPerson(c echo.Context) error {
+func (h *Handler) GetPerson(c echo.Context) error {
 	ctx := c.Request().Context()
 	id := c.Param("id")
 
@@ -39,7 +36,7 @@ func (h *PersonHandler) GetPerson(c echo.Context) error {
 		return echo.ErrForbidden
 	}
 
-	user, err := h.personService.GetPersonByExternalID(ctx, id)
+	user, err := h.personService.GetByExternalID(ctx, id)
 	if err != nil {
 		c.Logger().Errorf("GetPerson: %v", err)
 		return c.JSON(http.StatusNotFound, map[string]string{"error": "Person not found"})
@@ -48,10 +45,10 @@ func (h *PersonHandler) GetPerson(c echo.Context) error {
 	return c.JSON(http.StatusOK, user)
 }
 
-func (h *PersonHandler) CreatePerson(c echo.Context) error {
+func (h *Handler) CreatePerson(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	person := new(model.Person)
+	person := new(Person)
 	if err := c.Bind(person); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 	}
@@ -60,7 +57,7 @@ func (h *PersonHandler) CreatePerson(c echo.Context) error {
 		return err
 	}
 
-	createdPerson, err := h.personService.CreatePerson(ctx, person)
+	createdPerson, err := h.personService.Create(ctx, person)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
