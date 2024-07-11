@@ -1,34 +1,35 @@
-package person
+package handler
 
 import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/labstack/echo/v4"
-	jwtmodel "goechotemplate/api/internal/auth"
+	"goechotemplate/api/internal/model"
+	jwtmodel "goechotemplate/api/internal/service"
 	"net/http"
 )
 
-type Handler struct {
-	authService   jwtmodel.Service
-	personService Service
+type PersonHandler struct {
+	authService   jwtmodel.AuthService
+	personService jwtmodel.PersonService
 }
 
-func NewPersonHandler(authService jwtmodel.Service, personService Service) *Handler {
-	return &Handler{
+func NewPersonHandler(authService jwtmodel.AuthService, personService jwtmodel.PersonService) *PersonHandler {
+	return &PersonHandler{
 		authService:   authService,
 		personService: personService,
 	}
 }
 
-func (h *Handler) GetPerson(c echo.Context) error {
+func (h *PersonHandler) GetPerson(c echo.Context) error {
 	ctx := c.Request().Context()
 	id := c.Param("id")
 
-	authenticatedPersonID, err := c.Get(jwtmodel.DefaultJWTConfig.ContextKey).(*jwt.Token).Claims.GetSubject()
+	authenticatedPersonID, err := c.Get(model.DefaultJWTConfig.ContextKey).(*jwt.Token).Claims.GetSubject()
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
-	_, err = h.authService.VerifyAuthorisation(ctx, jwtmodel.VerifyAuthorisationParams{
+	_, err = h.authService.VerifyAuthorisation(ctx, model.VerifyAuthorisationParams{
 		AuthenticatedPersonID: &authenticatedPersonID,
 		TargetPersonID:        &id,
 	})
@@ -45,10 +46,10 @@ func (h *Handler) GetPerson(c echo.Context) error {
 	return c.JSON(http.StatusOK, user)
 }
 
-func (h *Handler) CreatePerson(c echo.Context) error {
+func (h *PersonHandler) CreatePerson(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	person := new(Person)
+	person := new(model.Person)
 	if err := c.Bind(person); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 	}

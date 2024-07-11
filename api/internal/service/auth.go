@@ -1,32 +1,35 @@
-package auth
+package service
 
 import (
 	"context"
 	"fmt"
 	"github.com/golang-jwt/jwt/v5"
+	"goechotemplate/api/internal/dto"
+	"goechotemplate/api/internal/model"
+	"goechotemplate/api/internal/repo"
 	"golang.org/x/crypto/bcrypt"
 	"time"
 )
 
-type Service struct {
-	authRepository Repository
+type AuthService struct {
+	authRepository repo.AuthRepo
 }
 
-func NewAuthService(authRepository Repository) Service {
-	return Service{
+func NewAuthService(authRepository repo.AuthRepo) AuthService {
+	return AuthService{
 		authRepository: authRepository,
 	}
 }
 
-func (s *Service) Login(ctx context.Context, req *LoginRequest) (LoginResponse, error) {
+func (s *AuthService) Login(ctx context.Context, req *dto.LoginRequest) (dto.LoginResponse, error) {
 	person, err := s.authRepository.GetByEmail(ctx, req.Email)
 	if err != nil {
-		return LoginResponse{}, fmt.Errorf("Service.Login: %w", err)
+		return dto.LoginResponse{}, fmt.Errorf("AuthService.Login: %w", err)
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(person.Password), []byte(req.Password))
 	if err != nil {
-		return LoginResponse{}, fmt.Errorf("Service.Login: %w", err)
+		return dto.LoginResponse{}, fmt.Errorf("AuthService.Login: %w", err)
 	}
 
 	claims := jwt.RegisteredClaims{
@@ -39,22 +42,22 @@ func (s *Service) Login(ctx context.Context, req *LoginRequest) (LoginResponse, 
 	// Generate encoded token and send it as response.
 	signedToken, err := token.SignedString([]byte("secret"))
 	if err != nil {
-		return LoginResponse{}, fmt.Errorf("Service.Login: %w", err)
+		return dto.LoginResponse{}, fmt.Errorf("AuthService.Login: %w", err)
 	}
 
-	return LoginResponse{
+	return dto.LoginResponse{
 		AccessToken: signedToken,
 		AccountID:   person.PersonExternalID,
 	}, nil
 }
 
-func (s *Service) VerifyAuthorisation(
+func (s *AuthService) VerifyAuthorisation(
 	ctx context.Context,
-	params VerifyAuthorisationParams,
-) (*Authorisation, error) {
+	params model.VerifyAuthorisationParams,
+) (*model.Authorisation, error) {
 	if *params.TargetPersonID == *params.AuthenticatedPersonID {
-		return &Authorisation{}, nil
+		return &model.Authorisation{}, nil
 	}
 
-	return nil, &AuthorisationError{}
+	return nil, &model.AuthorisationError{}
 }

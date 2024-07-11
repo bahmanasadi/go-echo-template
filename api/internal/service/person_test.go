@@ -1,9 +1,11 @@
-package person
+package service
 
 import (
 	"context"
 	"database/sql"
 	"fmt"
+	"goechotemplate/api/internal/model"
+	"goechotemplate/api/internal/repo"
 	"testing"
 	"time"
 
@@ -18,7 +20,7 @@ import (
 
 type ServiceTestSuite struct {
 	suite.Suite
-	service Service
+	service PersonService
 	db      *sql.DB
 }
 
@@ -35,7 +37,7 @@ func (suite *ServiceTestSuite) SetupSuite() {
 
 	suite.db = stdlib.OpenDB(*pgxCfg)
 
-	suite.service = NewService(NewRepository(db.New(suite.db)))
+	suite.service = NewPersonService(repo.NewPersonRepo(db.New(suite.db)))
 }
 
 func (suite *ServiceTestSuite) TearDownSuite() {
@@ -44,7 +46,7 @@ func (suite *ServiceTestSuite) TearDownSuite() {
 
 func (suite *ServiceTestSuite) TestCreatePerson() {
 	ctx := context.Background()
-	newPerson := Person{
+	newPerson := model.Person{
 		ExternalID: uuid.NewString(),
 		Email:      fmt.Sprintf("%s@x.com", uuid.NewString()),
 		Password:   nil,
@@ -69,7 +71,7 @@ func (suite *ServiceTestSuite) TestGetPersonNotExists() {
 	ctx := context.Background()
 	_, err := suite.service.GetByExternalID(ctx, "123")
 	suite.Error(err)
-	suite.Equal("Repository.GetByExternalID: sql: no rows in result set", err.Error())
+	suite.Equal("PersonService.GetByExternalID: PersonRepo.GetByExternalID: sql: no rows in result set", err.Error())
 }
 
 func TestPersonServiceTestSuite(t *testing.T) {

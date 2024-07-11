@@ -1,4 +1,4 @@
-package auth
+package model
 
 import echojwt "github.com/labstack/echo-jwt/v4"
 

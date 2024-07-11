@@ -1,27 +1,28 @@
-package person
+package repo
 
 import (
 	"context"
 	"database/sql"
 	"fmt"
 	db "goechotemplate/api/db/model"
+	"goechotemplate/api/internal/model"
 	"time"
 )
 
-type Repository struct {
+type PersonRepo struct {
 	queries *db.Queries
 }
 
-func NewRepository(queries *db.Queries) Repository {
-	return Repository{queries: queries}
+func NewPersonRepo(queries *db.Queries) PersonRepo {
+	return PersonRepo{queries: queries}
 }
 
-func (r *Repository) GetByExternalID(ctx context.Context, externalID string) (*Person, error) {
+func (r *PersonRepo) GetByExternalID(ctx context.Context, externalID string) (*model.Person, error) {
 	person, err := r.queries.GetPerson(ctx, externalID)
 	if err != nil {
-		return &Person{}, fmt.Errorf("Repository.GetByExternalID: %w", err)
+		return &model.Person{}, fmt.Errorf("PersonRepo.GetByExternalID: %w", err)
 	}
-	return &Person{
+	return &model.Person{
 		ID:         person.ID,
 		ExternalID: person.ExternalID,
 		Email:      person.Email.String,
@@ -31,7 +32,7 @@ func (r *Repository) GetByExternalID(ctx context.Context, externalID string) (*P
 	}, nil
 }
 
-func (r *Repository) Create(ctx context.Context, person *Person) (*Person, error) {
+func (r *PersonRepo) Create(ctx context.Context, person *model.Person) (*model.Person, error) {
 	createdPerson, err := r.queries.CreatePerson(ctx, db.CreatePersonParams{
 		ExternalID: person.ExternalID,
 		Email:      sql.NullString{String: person.Email, Valid: true},
@@ -41,10 +42,10 @@ func (r *Repository) Create(ctx context.Context, person *Person) (*Person, error
 	})
 
 	if err != nil {
-		return &Person{}, fmt.Errorf("Repository.Create: %w", err)
+		return &model.Person{}, fmt.Errorf("PersonRepo.Create: %w", err)
 	}
 
-	return &Person{
+	return &model.Person{
 		ID:         createdPerson.ID,
 		ExternalID: createdPerson.ExternalID,
 		Email:      createdPerson.Email.String,

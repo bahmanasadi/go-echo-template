@@ -8,9 +8,11 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	sqlcdb "goechotemplate/api/db/model"
-	authhandler "goechotemplate/api/internal/auth"
 	cfg "goechotemplate/api/internal/config"
-	accounthandler "goechotemplate/api/internal/person"
+	"goechotemplate/api/internal/handler"
+	"goechotemplate/api/internal/model"
+	"goechotemplate/api/internal/repo"
+	authhandler "goechotemplate/api/internal/service"
 	"goechotemplate/api/pkg/validators"
 	"log"
 )
@@ -31,12 +33,12 @@ func main() {
 	defer db.Close()
 
 	// Initialize repository
-	personRepo := accounthandler.NewRepository(sqlcdb.New(db))
-	authRepo := authhandler.NewRepository(sqlcdb.New(db))
+	personRepo := repo.NewPersonRepo(sqlcdb.New(db))
+	authRepo := repo.NewAuthRepo(sqlcdb.New(db))
 
 	// Initialize service
 	authService := authhandler.NewAuthService(authRepo)
-	personService := accounthandler.NewService(personRepo)
+	personService := authhandler.NewPersonService(personRepo)
 
 	// Initialize Echo
 	e := echo.New()
@@ -49,14 +51,14 @@ func main() {
 	e.GET("/metrics", echoprometheus.NewHandler())         // adds route to serve gathered metrics
 
 	// Setup routes
-	personHandler := accounthandler.NewPersonHandler(authService, personService)
+	personHandler := handler.NewPersonHandler(authService, personService)
 
-	authHandler := authhandler.NewHandler(authService)
+	authHandler := handler.NewAuthHandler(authService)
 	e.POST("/login", authHandler.Login)
 
 	accountGroup := e.Group("/accounts")
 	accountGroup.Use(
-		echojwt.WithConfig(authhandler.DefaultJWTConfig),
+		echojwt.WithConfig(model.DefaultJWTConfig),
 	)
 	accountGroup.GET("/:id", personHandler.GetPerson)
 	accountGroup.POST("/", personHandler.CreatePerson)
